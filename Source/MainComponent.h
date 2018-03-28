@@ -22,14 +22,18 @@
 #define ColorText1              Colours::white
 
 
-class MarkerInfo : public juce::Component, private juce::Button::Listener
+class MarkerInfo : public juce::Component, private juce::Button::Listener, private juce::TextEditor::Listener
 {
 public:
-   MarkerInfo()
+
+
+  MarkerInfo(double p, const juce::String &t) : pos(p)
   {
     setInterceptsMouseClicks(false, true);
     editMarker.setClickingTogglesState(true);
     editMarker.addListener(this);
+    editTitle.setText(t);
+    editTitle.addListener(this);
 
     addAndMakeVisible(editMarker);
     addAndMakeVisible(delMarker);
@@ -41,18 +45,34 @@ public:
     {
       if (editMarker.getToggleState())
       {
-        editTitle.setText(title);
-        editTitle.setReadOnly(false);
         addAndMakeVisible(editTitle);
+        editTitle.grabKeyboardFocus();
       }
       else
       {
-        title = editTitle.getText();
         removeChildComponent(&editTitle);
       }
     }
   }
   
+
+
+  virtual void textEditorReturnKeyPressed(TextEditor&e) 
+  {
+    editMarker.setToggleState(false, juce::NotificationType::sendNotification);
+  }
+
+  virtual void textEditorEscapeKeyPressed(TextEditor&e) 
+  {
+    editMarker.setToggleState(false, juce::NotificationType::sendNotification);
+  }
+
+  virtual void textEditorFocusLost(TextEditor&e) 
+  {
+    editMarker.setToggleState(false, juce::NotificationType::sendNotification);
+  }
+
+
   
   void resized() override
   {
@@ -66,16 +86,14 @@ public:
   {
     g.setColour(ColorWaveMarker);
     if (!editMarker.getToggleState())
-      g.drawText(juce::String(title), 1, 0, getWidth(), 20, juce::Justification::topLeft);
+      g.drawText(editTitle.getText(), 1, 0, getWidth(), 20, juce::Justification::topLeft);
     g.drawRect(0, 0, 1, getHeight());
   }
-  
-  juce::String title;
-  juce::String desc;
-  double       pos;
-  
+
+
+   double       pos;
   TextEditor            editTitle;
-  TextButton            editMarker { "E" };
+  TextButton            editMarker { "e" };
   TextButton            delMarker { "-" };
 };
 
@@ -136,7 +154,7 @@ public:
     void mouseWheelMove (const MouseEvent&, const MouseWheelDetails& wheel) override;
     void buttonClicked (Button*) override;
   
-  void addMarkerToList(double time, const juce::String &title, const juce::String &desc, bool saveXML = false);
+  void addMarkerToList(double time, const juce::String &title, bool saveXML = false);
   
   void saveMarkers();
   void loadMarkers();
@@ -204,6 +222,9 @@ private:
     ScopedPointer<WaveMarkerComp> waveMarkerComp;
     Label zoomLabel   { {}, "zoom:" };
     Slider zoomSlider                   { Slider::LinearHorizontal, Slider::NoTextBox };
+
+    Label gainLabel{ {}, "vol:" };
+    Slider gainSlider                   { Slider::LinearHorizontal, Slider::NoTextBox };
     ToggleButton followTransportButton  { "Follow Transport" };
     TextButton startPauseButton          { "Play/Pause" };
     TextButton stopButton                { "Stop" };

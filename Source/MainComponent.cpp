@@ -41,18 +41,17 @@ void WaveMarkerComp::setURL (const URL& url)
 {
   markersLocation = File();
   InputSource* inputSource = nullptr;
-  
-#if ! JUCE_IOS
+
   if (url.isLocalFile())
   {
     inputSource = new FileInputSource (url.getLocalFile());
     markersLocation = url.getLocalFile().getFullPathName() + MarkerFilesExt;
   }
   else
-#endif
   {
-    if (inputSource == nullptr)
-      inputSource = new URLInputSource (url);
+    juce::AlertWindow::showMessageBox(juce::AlertWindow::WarningIcon, "Cannot open file", "Is not a local file");
+ //   if (inputSource == nullptr)
+ //     inputSource = new URLInputSource (url);
   }
   
   if (inputSource != nullptr)
@@ -154,7 +153,7 @@ void WaveMarkerComp::buttonClicked (juce::Button *btn)
 {
   if (&addMarker == btn)
   {
-    addMarkerToList(transportSource.getCurrentPosition(), "NEW MARKER", "*No Comment*", true);
+    addMarkerToList(transportSource.getCurrentPosition(), "NEW MARKER", true);
   }
   else
   {
@@ -162,7 +161,6 @@ void WaveMarkerComp::buttonClicked (juce::Button *btn)
     {
       if (&(*it)->editMarker == btn)
       {
-        (*it)->title = (*it)->editTitle.getText();
         saveMarkers();
       }
       if (&(*it)->delMarker == btn)
@@ -176,12 +174,9 @@ void WaveMarkerComp::buttonClicked (juce::Button *btn)
 }
 
 
-void WaveMarkerComp::addMarkerToList(double time, const juce::String &title, const juce::String &desc, bool saveXML)
+void WaveMarkerComp::addMarkerToList(double time, const juce::String &title, bool saveXML)
 {
-  MarkerInfo *newMarker = new MarkerInfo();
-  newMarker->pos = time;
-  newMarker->title = title;
-  newMarker->desc = desc;
+  MarkerInfo *newMarker = new MarkerInfo(time, title);
   newMarker->delMarker.addListener(this);
   newMarker->editMarker.addListener(this);
 
@@ -200,8 +195,7 @@ void WaveMarkerComp::saveMarkers()
   {
     auto m = root.createNewChildElement("Marker");
     m->setAttribute("Time", marker->pos);
-    m->setAttribute("Title", marker->title);
-    m->setAttribute("Desc", marker->desc);
+    m->setAttribute("Title", marker->editTitle.getText());
   }
   bool res = root.writeToFile(markersLocation, "");
   jassert(res);
@@ -223,8 +217,7 @@ void WaveMarkerComp::loadMarkers()
     {
       double time = m->getDoubleAttribute("Time");
       juce::String title = m->getStringAttribute("Title");
-      juce::String desc = m->getStringAttribute("Desc");
-      addMarkerToList(time, title, desc);
+      addMarkerToList(time, title);
     }
   }
   delete root;
@@ -373,6 +366,11 @@ PlayerActionsComponent::PlayerActionsComponent()
   zoomLabel.setFont (Font (15.00f, Font::plain));
   zoomLabel.setJustificationType (Justification::centredRight);
   zoomLabel.setEditable (false, false, false);
+
+  addAndMakeVisible(gainLabel);
+  gainLabel.setFont(Font(15.00f, Font::plain));
+  gainLabel.setJustificationType(Justification::centredRight);
+  gainLabel.setEditable(false, false, false);
   
   addAndMakeVisible (followTransportButton);
   followTransportButton.onClick = [this] { updateFollowTransportState(); };
@@ -382,6 +380,15 @@ PlayerActionsComponent::PlayerActionsComponent()
   zoomSlider.onValueChange = [this] { waveMarkerComp->setZoomFactor (zoomSlider.getValue()); };
   zoomSlider.setSkewFactor (2);
   
+  addAndMakeVisible(gainSlider);
+  gainSlider.setRange(0, 500, 1);
+  gainSlider.setValue(100.);
+  gainSlider.setPopupDisplayEnabled(true, true, getTopLevelComponent(), 1000);
+  gainSlider.setDoubleClickReturnValue(true, 100.);
+  gainSlider.onValueChange = [this] { audioSourcePlayer.setGain((double)gainSlider.getValue() / 100.); };
+  gainSlider.setSkewFactor(0.4);
+
+
   waveMarkerComp.reset (new WaveMarkerComp (formatManager, transportSource, zoomSlider));
   addAndMakeVisible (waveMarkerComp.get());
   waveMarkerComp->addChangeListener (this);
@@ -429,11 +436,14 @@ void PlayerActionsComponent::resized()
   
   auto controls = r.removeFromBottom (25);
 
-  
-
   startPauseButton      .setBounds (controls.removeFromLeft(80));
   stopButton            .setBounds (controls.removeFromLeft(80));
   followTransportButton.setBounds (controls.removeFromLeft (100));
+
+  auto gain = controls.removeFromRight(200);
+  gainLabel.setBounds(gain.removeFromLeft(30));
+  gainSlider.setBounds(gain);
+
   waveMarkerComp->setBounds (r);
 }
 
