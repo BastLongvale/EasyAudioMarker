@@ -150,6 +150,7 @@ public:
     void filesDropped (const StringArray& files, int /*x*/, int /*y*/) override;
     void mouseDown (const MouseEvent& e) override;
     void mouseDrag (const MouseEvent& e) override;
+    void mouseMove(const MouseEvent& e) override;
     void mouseUp (const MouseEvent&) override;
     void mouseWheelMove (const MouseEvent&, const MouseWheelDetails& wheel) override;
     void buttonClicked (Button*) override;
@@ -172,6 +173,7 @@ private:
     PlayHead              currentPositionMarker;
     juce::File            markersLocation;
     std::list<juce::ScopedPointer<MarkerInfo> > markers;
+    juce::Point<int>      lastMousePos;
   
     float timeToX (const double time) const;
     double xToTime (const float x) const;

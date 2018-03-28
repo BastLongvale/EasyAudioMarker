@@ -79,8 +79,10 @@ void WaveMarkerComp::setZoomFactor (double amount)
     auto timeAtCentre = xToTime (getWidth() / 2.0f);
     
     auto timeAtCursor = xToTime (currentPositionMarker.getX());
+
+    auto timeAtMouse = xToTime(lastMousePos.getX());
     
-    setRange ({ juce::jmax(0., timeAtCursor - newScale * 0.5), timeAtCursor + newScale * 0.5 });
+    setRange ({ juce::jmax(0., timeAtMouse - newScale * 0.5), timeAtMouse + newScale * 0.5 });
   }
 }
 
@@ -236,6 +238,12 @@ void WaveMarkerComp::mouseDrag (const MouseEvent& e)
   if (canMoveTransport())
     transportSource.setPosition (jmax (0.0, xToTime ((float) e.x)));
 }
+
+void WaveMarkerComp::mouseMove(const MouseEvent& e)
+{
+  lastMousePos = e.getPosition();
+}
+
 
 void WaveMarkerComp::mouseUp (const MouseEvent&)
 {
